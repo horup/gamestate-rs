@@ -8,7 +8,7 @@ pub struct ThingID
     pub generation:u16
 }
 
-#[derive(Default, Copy, Clone)]
+#[derive(Default, Copy, Clone, PartialEq)]
 pub struct Thing
 {
     pub id:ThingID,

@@ -1,4 +1,4 @@
-use std::mem::size_of;
+use std::slice::IterMut;
 
 use crate::thing::{Thing, ThingID};
 
@@ -50,6 +50,22 @@ impl Things
         None
     }
 
+    pub fn iter_mut(&mut self) -> ThingsIntoIterator
+    {
+        ThingsIntoIterator {
+            iter:self.things.iter_mut()
+        }
+    }
+
+    pub fn delete_thing(&mut self, id:ThingID)
+    {
+        let i = id.index as usize;
+        if self.things[i].0 == id.generation && self.things[i].1 != None
+        {
+            self.things[i].1 = None;
+        }
+    }
+
     pub fn new_thing_replicated(&mut self) -> &mut Thing
     {
         let l = self.things.len() / 2;
@@ -80,11 +96,15 @@ impl Things
         panic!("Was not able to allocate Thing, out of space!");
     }
 
+
+
     pub fn new_thing(&mut self) -> &mut Thing
     {
         let l = self.things.len() / 2;
         let mut id = ThingID::default();
         let mut success = false;
+        let t = self.things.iter_mut();
+
         for i in (l..l*2).rev()
         {
             if let None = self.things[i].1
@@ -110,3 +130,89 @@ impl Things
         panic!("Was not able to allocate Thing, out of space!");
     }
 }
+
+pub struct ThingsIntoIterator<'a>
+{
+    iter:IterMut<'a, (u16, Option<Thing>)>
+}
+
+impl<'a> Iterator for ThingsIntoIterator<'a>
+{
+    type Item = &'a mut Thing;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        
+        loop
+        {
+            if let Some(e) = self.iter.next()
+            {
+                if let Some(thing) = &mut e.1
+                {
+                    return Some(thing);
+                }
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        None
+    }
+}
+/*
+impl <'a> IntoIterator for &'a mut Things
+{
+    type Item = &'a mut Thing;
+
+    type IntoIter = ThingsIntoIterator<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        ThingsIntoIterator {
+            iter:self.things.iter_mut()
+        }
+    }
+}*/
+
+
+/*
+pub struct ThingsIntoIterator<'a>
+{
+    things:&'a mut Things,
+    index:usize
+}
+
+impl<'a> Iterator for ThingsIntoIterator<'a>
+{
+    type Item = &'a mut Thing;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let l  = self.things.things.len();
+        for i in self.index..l
+        {
+            self.index = i;
+
+            if let (_, Some(e)) = &mut self.things.things[i]
+            {
+                return Some(e);
+            }
+        }
+
+        None
+    }
+}
+
+impl<'a> IntoIterator for &'a mut Things
+{
+    type Item = &'a mut Thing;
+
+    type IntoIter = ThingsIntoIterator<'a>;
+
+    fn into_iter(self) -> Self::IntoIter 
+    {
+        ThingsIntoIterator {
+            things:self,
+            index:0
+        }
+    }
+}*/

@@ -1,6 +1,6 @@
 mod state;
 mod thing;
-use std::{mem, time::Instant};
+use std::{time::Instant};
 
 use state::*;
 use thing::*;
@@ -13,19 +13,17 @@ fn main() {
     for i in 0..10
     {
         let thing = state.things.new_thing_replicated();
-        println!("allocated {}", thing.id.index);
     }
 
     for i in 0..10
     {
         let thing = state.things.new_thing();
-        println!("allocated {}", thing.id.index);
     }
 
     loop
     {
         let mut cloned = state.clone();
-
+        
         frames += 1;
         if now.elapsed().as_millis() > 1000
         {
