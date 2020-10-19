@@ -1,6 +1,14 @@
 use std::slice::IterMut;
 
-use crate::thing::{Thing, ThingID};
+use crate::thing::{Thing};
+
+
+#[derive(Copy, Eq, PartialEq, Clone, Default)]
+pub struct ThingID
+{
+    pub index:u16,
+    pub generation:u16
+}
 
 #[derive(Clone)]
 pub struct State
