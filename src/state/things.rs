@@ -7,7 +7,6 @@ pub struct ThingID
     pub generation:u16
 }
 
-
 #[derive(Clone)]
 pub struct Things<T>
 {
