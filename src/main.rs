@@ -1,24 +1,30 @@
 mod state;
-mod thing;
 use std::{time::Instant};
 
+use glam::Vec2;
 use state::*;
-use thing::*;
+
+#[derive(Default, Copy, Clone, PartialEq)]
+pub struct Sprite
+{
+    pub texture:u8,
+    pub col:u8,
+    pub row:u8
+}
+
+#[derive(Default, Copy, Clone, PartialEq)]
+pub struct Thing
+{
+    pub id:ThingID,
+    pub pos:Vec2,
+    pub sprite:Option<Sprite>
+}
+
 
 fn main() {
     let mut now = Instant::now();
     let mut frames = 0;
-    let mut state = State::new();
-
-    for i in 0..10
-    {
-        let thing = state.things.new_thing_replicated();
-    }
-
-    for i in 0..10
-    {
-        let thing = state.things.new_thing();
-    }
+    let mut state:State<Thing> = State::new();
 
     loop
     {
