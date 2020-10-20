@@ -142,7 +142,7 @@ pub struct ThingsIntoIterator<'a, T> where T : Copy + Clone
 
 impl<'a, T> Iterator for ThingsIntoIterator<'a, T> where T : Copy + Clone
 {
-    type Item = &'a mut T;
+    type Item = (ThingID, &'a mut T);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop
@@ -151,7 +151,7 @@ impl<'a, T> Iterator for ThingsIntoIterator<'a, T> where T : Copy + Clone
             {
                 if let Some(thing) = &mut e.1
                 {
-                    return Some(thing);
+                    return Some((e.0, thing));
                 }
             }
             else

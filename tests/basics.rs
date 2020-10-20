@@ -22,7 +22,7 @@ impl DeltaSerializable for Thing
 type S = State<Thing>;
 
 #[test]
-fn delta_serializable(){
+fn basics(){
     let empty = S::new();
     let mut current = S::new();
     assert!(empty == current);
@@ -43,14 +43,9 @@ fn delta_serializable(){
     assert_eq!(id, ThingID {index:0, generation:2});
     current.things.delete_thing(id);
 
-    for thing in current.things.iter_mut()
+    for (id, thing) in current.things.iter_mut()
     {
         assert_eq!(thing.health, 1.0);
     }
-
-    //let one_thing = current.clone();
-    //assert!(current == one_thing);
-    
-
 
 }
