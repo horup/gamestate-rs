@@ -1,4 +1,5 @@
-use std::{ops::Range, slice::IterMut};
+use std::{io::Read, io::Write, ops::Range, slice::IterMut};
+use super::DeltaSerializable;
 
 #[derive(Copy, Eq, PartialEq, Clone, Default)]
 pub struct ThingID
@@ -13,8 +14,7 @@ pub struct Things<T>
     things:Box<[(ThingID, Option<T>)]>
 }
 
-
-impl<T> Things<T> where T : Clone + PartialEq + Default
+impl<T> Things<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializable
 {
     pub fn new() -> Things<T>
     {
@@ -99,12 +99,34 @@ impl<T> Things<T> where T : Clone + PartialEq + Default
     }
 }
 
-pub struct ThingsIntoIterator<'a, T> where T : Clone
+impl<T> DeltaSerializable for Things<T> where T : PartialEq + DeltaSerializable
+{
+    fn delta_serialize(current:&Self, previous:&Self, writer:&mut dyn Write) {
+        let l = current.things.len() / 2; // only first part is replicated
+        for i in 0..l
+        {
+            if current.things[i] != previous.things[i] // not equal
+            {
+                // write id
+                writer.write(&(i as u16).to_le_bytes());
+                // write generation
+                writer.write(&current.things[i].0.generation.to_le_bytes());
+            }
+        }
+    }
+
+    fn delta_deserialize(previous:&Self, read:&mut dyn Read) -> Self {
+        todo!()
+    }
+}
+
+
+pub struct ThingsIntoIterator<'a, T> where T : Copy + Clone
 {
     iter:IterMut<'a, (ThingID, Option<T>)>
 }
 
-impl<'a, T> Iterator for ThingsIntoIterator<'a, T> where T : Clone
+impl<'a, T> Iterator for ThingsIntoIterator<'a, T> where T : Copy + Clone
 {
     type Item = &'a mut T;
 
