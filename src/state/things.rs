@@ -73,6 +73,28 @@ impl<T> Things<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializab
         return self.new_thing_internal(slice);
     }
 
+    pub fn clear(&mut self)
+    {
+        for (id, t) in self.things.iter_mut()
+        {
+            *t = None;
+        }
+    }
+
+    pub fn len(&self) -> usize
+    {
+        let mut len = 0;
+        for (_, e) in self.things.iter()
+        {
+            if let Some(_) = e
+            {
+                len += 1;
+            }
+        }
+
+        return len;
+    }
+
     fn new_thing_internal(&mut self, slice:Range<usize>) -> (ThingID, &mut T)
     {
         let mut id = ThingID::default();

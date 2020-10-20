@@ -43,9 +43,18 @@ fn basics(){
     assert_eq!(id, ThingID {index:0, generation:2});
     current.things.delete_thing(id);
 
+    assert_eq!(current.things.len(), 1);
     for (id, thing) in current.things.iter_mut()
     {
         assert_eq!(thing.health, 1.0);
     }
 
+    for i in 0..10
+    {
+        current.things.new_thing_replicated();
+    }
+    assert_eq!(current.things.len(), 11);
+
+    current.things.clear();
+    assert_eq!(current.things.len(), 0);
 }
