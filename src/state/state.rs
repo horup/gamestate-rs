@@ -1,7 +1,7 @@
 use std::io::{Read, Write};
 use super::{Things};
 
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct State<T> where T : Copy + Clone + PartialEq + Copy + Default + DeltaSerializable
 {
     pub things:Things<T>

@@ -1,14 +1,14 @@
 use std::{io::Read, io::Write, ops::Range, slice::IterMut};
 use super::DeltaSerializable;
 
-#[derive(Copy, Eq, PartialEq, Clone, Default)]
+#[derive(Copy, Eq, PartialEq, Clone, Default, Debug)]
 pub struct ThingID
 {
     pub index:u16,
     pub generation:u16
 }
 
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct Things<T>
 {
     things:Box<[(ThingID, Option<T>)]>
@@ -99,7 +99,7 @@ impl<T> Things<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializab
     }
 }
 
-impl<T> DeltaSerializable for Things<T> where T : PartialEq + DeltaSerializable
+impl<T> DeltaSerializable for Things<T> where T : PartialEq + DeltaSerializable + Copy + Default
 {
     fn delta_serialize(current:&Self, previous:&Self, writer:&mut dyn Write) {
         let l = current.things.len() / 2; // only first part is replicated
@@ -116,7 +116,21 @@ impl<T> DeltaSerializable for Things<T> where T : PartialEq + DeltaSerializable
     }
 
     fn delta_deserialize(previous:&Self, read:&mut dyn Read) -> Self {
-        todo!()
+        let mut current = Things::new();
+        loop
+        {
+            let mut buf = [0 as u8;4];
+            if let Ok(n) = read.read(&mut buf)
+            {
+                println!("{}", n);
+                if n == 0
+                {
+                    break;
+                }
+            }
+        }
+
+        current
     }
 }
 

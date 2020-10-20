@@ -45,9 +45,9 @@ fn main() {
         if now.elapsed().as_millis() > 1000
         {
             let mut buffer:Vec<u8> = Vec::new();
+            state.things.new_thing_replicated();
             DeltaSerializable::delta_serialize(&state, &prev, &mut buffer);
-
-            println!("{}", buffer.len());
+            let des = DeltaSerializable::delta_deserialize(&state, &mut Cursor::new(&buffer));
             println!("fps {}", frames);
             frames = 0;
             now = Instant::now();
