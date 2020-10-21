@@ -59,14 +59,14 @@ impl<T> Entities<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializ
         }
     }
 
-    pub fn new_entity_replicated(&mut self) -> (EntityID, &mut T)
+    pub fn new_entity_replicated(&mut self) -> Option<(EntityID, &mut T)>
     {
         let l = self.entities.len() / 2;
         let slice = 0..l;
         return self.new_entity_internal(slice);
     }
 
-    pub fn new_entity(&mut self) -> (EntityID, &mut T)
+    pub fn new_entity(&mut self) -> Option<(EntityID, &mut T)>
     {
         let l = self.entities.len() / 2;
         let slice = l..l*2;
@@ -95,7 +95,7 @@ impl<T> Entities<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializ
         return len;
     }
 
-    fn new_entity_internal(&mut self, slice:Range<usize>) -> (EntityID, &mut T)
+    fn new_entity_internal(&mut self, slice:Range<usize>) -> Option<(EntityID, &mut T)>
     {
         let mut id = EntityID::default();
         let mut success = false;
@@ -113,10 +113,10 @@ impl<T> Entities<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializ
       
         if success
         {
-            return self.get_entity_mut(id).unwrap();
+            return self.get_entity_mut(id);
         }
 
-        panic!("Was not able to allocate Thing, out of space!");
+        None
     }
 }
 

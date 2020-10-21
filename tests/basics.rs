@@ -27,11 +27,11 @@ fn basics(){
     let mut current = S::new();
     assert!(empty == current);
 
-    let (id, _) = current.entities.new_entity_replicated();
+    let (id, _) = current.entities.new_entity_replicated().unwrap();
     assert!(empty != current);
     assert_eq!(id, EntityID {index:0, generation:1});
 
-    let (id, t) = current.entities.new_entity_replicated();
+    let (id, t) = current.entities.new_entity_replicated().unwrap();
     t.health = 1.0;
     t.x = 2.0;
     t.y = 3.0;
@@ -39,7 +39,7 @@ fn basics(){
     assert_eq!(id, EntityID {index:1, generation:1});
 
     current.entities.delete_entity(EntityID {index:0, generation:1});
-    let (id, _) = current.entities.new_entity_replicated();
+    let (id, _) = current.entities.new_entity_replicated().unwrap();
     assert_eq!(id, EntityID {index:0, generation:2});
     current.entities.delete_entity(id);
 
