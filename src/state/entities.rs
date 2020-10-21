@@ -19,13 +19,13 @@ impl<T> Entities<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializ
     pub fn new() -> Entities<T>
     {
         let size = u16::MAX / 4;
-        let mut things:Vec<(EntityID, Option<T>)> = vec![(EntityID::default(), None); size as usize];
-        for i in 0..things.len()
+        let mut entities:Vec<(EntityID, Option<T>)> = vec![(EntityID::default(), None); size as usize];
+        for i in 0..entities.len()
         {
-            things[i].0.index = i as u16;
+            entities[i].0.index = i as u16;
         }
         Self {
-            entities:things.into_boxed_slice()
+            entities:entities.into_boxed_slice()
         }
     }
 
@@ -34,9 +34,9 @@ impl<T> Entities<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializ
         let e = &mut self.entities[id.index as usize];
         if e.0 == id
         {
-            if let Some(thing) = &mut e.1
+            if let Some(e) = &mut e.1
             {
-                return Some((id, thing));
+                return Some((id, e));
             }
         }
 
@@ -75,7 +75,7 @@ impl<T> Entities<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializ
 
     pub fn clear(&mut self)
     {
-        for (id, t) in self.entities.iter_mut()
+        for (_, t) in self.entities.iter_mut()
         {
             *t = None;
         }
@@ -104,9 +104,8 @@ impl<T> Entities<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializ
             if let None = self.entities[i].1
             {
                 self.entities[i].0.generation += 1; // increment generation
-                let mut thing = T::default();
                 id = self.entities[i].0;
-                self.entities[i].1 = Some(thing);
+                self.entities[i].1 = Some(T::default());
                 success = true;
                 break;
             }
@@ -144,7 +143,6 @@ impl<T> DeltaSerializable for Entities<T> where T : PartialEq + DeltaSerializabl
             let mut buf = [0 as u8;4];
             if let Ok(n) = read.read(&mut buf)
             {
-                println!("{}", n);
                 if n == 0
                 {
                     break;
