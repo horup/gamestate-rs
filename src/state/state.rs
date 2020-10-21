@@ -1,10 +1,10 @@
 use std::io::{Read, Write};
-use super::{Things};
+use super::{Entities};
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct State<T> where T : Copy + Clone + PartialEq + Copy + Default + DeltaSerializable
 {
-    pub things:Things<T>
+    pub things:Entities<T>
 }
 
 pub trait DeltaSerializable
@@ -19,7 +19,7 @@ impl<T> State<T> where T : Copy + Clone + PartialEq + Copy + Default + DeltaSeri
     pub fn new() -> State<T>
     {
         State {
-            things:Things::new()
+            things:Entities::new()
         }
     }
 }
@@ -28,12 +28,12 @@ impl<T> DeltaSerializable for State<T> where T : Copy + Clone + PartialEq + Copy
 {
     fn delta_serialize(current:&Self, previous:&Self, writer:&mut dyn Write) 
     {
-        Things::delta_serialize(&current.things, &previous.things, writer);
+        Entities::delta_serialize(&current.things, &previous.things, writer);
     }
 
     fn delta_deserialize(previous:&Self, read:&mut dyn Read) -> Self {
         State {
-            things:Things::delta_deserialize(&previous.things, read)
+            things:Entities::delta_deserialize(&previous.things, read)
         }
     }
 }

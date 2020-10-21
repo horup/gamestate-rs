@@ -2,36 +2,36 @@ use std::{io::Read, io::Write, ops::Range, slice::IterMut};
 use super::DeltaSerializable;
 
 #[derive(Copy, Eq, PartialEq, Clone, Default, Debug)]
-pub struct ThingID
+pub struct EntityID
 {
     pub index:u16,
     pub generation:u16
 }
 
-#[derive(Clone, Eq, PartialEq)]
-pub struct Things<T>
+#[derive(Clone, PartialEq)]
+pub struct Entities<T>
 {
-    things:Box<[(ThingID, Option<T>)]>
+    entities:Box<[(EntityID, Option<T>)]>
 }
 
-impl<T> Things<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializable
+impl<T> Entities<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializable
 {
-    pub fn new() -> Things<T>
+    pub fn new() -> Entities<T>
     {
         let size = u16::MAX / 4;
-        let mut things:Vec<(ThingID, Option<T>)> = vec![(ThingID::default(), None); size as usize];
+        let mut things:Vec<(EntityID, Option<T>)> = vec![(EntityID::default(), None); size as usize];
         for i in 0..things.len()
         {
             things[i].0.index = i as u16;
         }
         Self {
-            things:things.into_boxed_slice()
+            entities:things.into_boxed_slice()
         }
     }
 
-    pub fn get_thing_mut(&mut self, id:ThingID) -> Option<(ThingID, &mut T)>
+    pub fn get_entity_mut(&mut self, id:EntityID) -> Option<(EntityID, &mut T)>
     {
-        let e = &mut self.things[id.index as usize];
+        let e = &mut self.entities[id.index as usize];
         if e.0 == id
         {
             if let Some(thing) = &mut e.1
@@ -43,39 +43,39 @@ impl<T> Things<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializab
         None
     }
 
-    pub fn iter_mut(&mut self) -> ThingsIntoIterator<T>
+    pub fn iter_mut(&mut self) -> EntitiesIntoIterator<T>
     {
-        ThingsIntoIterator {
-            iter:self.things.iter_mut()
+        EntitiesIntoIterator {
+            iter:self.entities.iter_mut()
         }
     }
 
-    pub fn delete_thing(&mut self, id:ThingID)
+    pub fn delete_entity(&mut self, id:EntityID)
     {
         let i = id.index as usize;
-        if self.things[i].0 == id && self.things[i].1 != None
+        if self.entities[i].0 == id && self.entities[i].1 != None
         {
-            self.things[i].1 = None;
+            self.entities[i].1 = None;
         }
     }
 
-    pub fn new_thing_replicated(&mut self) -> (ThingID, &mut T)
+    pub fn new_entity_replicated(&mut self) -> (EntityID, &mut T)
     {
-        let l = self.things.len() / 2;
+        let l = self.entities.len() / 2;
         let slice = 0..l;
-        return self.new_thing_internal(slice);
+        return self.new_entity_internal(slice);
     }
 
-    pub fn new_thing(&mut self) -> (ThingID, &mut T)
+    pub fn new_entity(&mut self) -> (EntityID, &mut T)
     {
-        let l = self.things.len() / 2;
+        let l = self.entities.len() / 2;
         let slice = l..l*2;
-        return self.new_thing_internal(slice);
+        return self.new_entity_internal(slice);
     }
 
     pub fn clear(&mut self)
     {
-        for (id, t) in self.things.iter_mut()
+        for (id, t) in self.entities.iter_mut()
         {
             *t = None;
         }
@@ -84,7 +84,7 @@ impl<T> Things<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializab
     pub fn len(&self) -> usize
     {
         let mut len = 0;
-        for (_, e) in self.things.iter()
+        for (_, e) in self.entities.iter()
         {
             if let Some(_) = e
             {
@@ -95,18 +95,18 @@ impl<T> Things<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializab
         return len;
     }
 
-    fn new_thing_internal(&mut self, slice:Range<usize>) -> (ThingID, &mut T)
+    fn new_entity_internal(&mut self, slice:Range<usize>) -> (EntityID, &mut T)
     {
-        let mut id = ThingID::default();
+        let mut id = EntityID::default();
         let mut success = false;
         for i in slice
         {
-            if let None = self.things[i].1
+            if let None = self.entities[i].1
             {
-                self.things[i].0.generation += 1; // increment generation
+                self.entities[i].0.generation += 1; // increment generation
                 let mut thing = T::default();
-                id = self.things[i].0;
-                self.things[i].1 = Some(thing);
+                id = self.entities[i].0;
+                self.entities[i].1 = Some(thing);
                 success = true;
                 break;
             }
@@ -114,31 +114,31 @@ impl<T> Things<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializab
       
         if success
         {
-            return self.get_thing_mut(id).unwrap();
+            return self.get_entity_mut(id).unwrap();
         }
 
         panic!("Was not able to allocate Thing, out of space!");
     }
 }
 
-impl<T> DeltaSerializable for Things<T> where T : PartialEq + DeltaSerializable + Copy + Default
+impl<T> DeltaSerializable for Entities<T> where T : PartialEq + DeltaSerializable + Copy + Default
 {
     fn delta_serialize(current:&Self, previous:&Self, writer:&mut dyn Write) {
-        let l = current.things.len() / 2; // only first part is replicated
+        let l = current.entities.len() / 2; // only first part is replicated
         for i in 0..l
         {
-            if current.things[i] != previous.things[i] // not equal
+            if current.entities[i] != previous.entities[i] // not equal
             {
                 // write id
                 writer.write(&(i as u16).to_le_bytes());
                 // write generation
-                writer.write(&current.things[i].0.generation.to_le_bytes());
+                writer.write(&current.entities[i].0.generation.to_le_bytes());
             }
         }
     }
 
     fn delta_deserialize(previous:&Self, read:&mut dyn Read) -> Self {
-        let mut current = Things::new();
+        let mut current = Entities::new();
         loop
         {
             let mut buf = [0 as u8;4];
@@ -157,14 +157,14 @@ impl<T> DeltaSerializable for Things<T> where T : PartialEq + DeltaSerializable 
 }
 
 
-pub struct ThingsIntoIterator<'a, T> where T : Copy + Clone
+pub struct EntitiesIntoIterator<'a, T> where T : Copy + Clone
 {
-    iter:IterMut<'a, (ThingID, Option<T>)>
+    iter:IterMut<'a, (EntityID, Option<T>)>
 }
 
-impl<'a, T> Iterator for ThingsIntoIterator<'a, T> where T : Copy + Clone
+impl<'a, T> Iterator for EntitiesIntoIterator<'a, T> where T : Copy + Clone
 {
-    type Item = (ThingID, &'a mut T);
+    type Item = (EntityID, &'a mut T);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop

@@ -1,5 +1,5 @@
 mod state;
-mod things;
+mod entities;
 
 pub use state::*;
-pub use things::*;
+pub use entities::*;
