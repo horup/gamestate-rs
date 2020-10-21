@@ -1,25 +1,6 @@
 use gamestate::*;
-
-#[derive(Copy, Clone, PartialEq, Default)]
-struct Thing
-{
-    pub x:f32,
-    pub y:f32,
-    pub health:f32
-}
-
-impl DeltaSerializable for Thing
-{
-    fn delta_serialize(current:&Self, previous:&Self, writer:&mut dyn std::io::Write) -> std::io::Result<usize> {
-        todo!()
-    }
-
-    fn delta_deserialize(previous:&Self, read:&mut dyn std::io::Read) -> std::io::Result<Self> {
-        todo!()
-    }
-}
-
-type S = State<Thing>;
+mod shared;
+use shared::*;
 
 #[test]
 fn basics(){
@@ -44,12 +25,12 @@ fn basics(){
     current.entities.delete_entity(id);
 
     assert_eq!(current.entities.len(), 1);
-    for (id, thing) in current.entities.iter_mut()
+    for (_, thing) in current.entities.iter_mut()
     {
         assert_eq!(thing.health, 1.0);
     }
 
-    for i in 0..10
+    for _ in 0..10
     {
         current.entities.new_entity_replicated();
     }

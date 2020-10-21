@@ -1,4 +1,4 @@
-use std::{io::Read, io::Write, ops::Range, slice::IterMut};
+use std::{convert::TryInto, io::Read, io::{Cursor, ErrorKind, Write}, ops::Range, slice::IterMut};
 use super::DeltaSerializable;
 
 #[derive(Copy, Eq, PartialEq, Clone, Default, Debug)]
@@ -8,7 +8,28 @@ pub struct EntityID
     pub generation:u16
 }
 
-#[derive(Clone, PartialEq)]
+impl  EntityID
+{
+    pub fn to_le_bytes(&self) -> [u8;4]
+    {
+        let mut buf= [0;4];
+        buf[0..2].copy_from_slice(&self.index.to_le_bytes());
+        buf[2..4].copy_from_slice(&self.generation.to_le_bytes());
+        self.generation.to_le_bytes();
+        return buf;
+    }
+
+    pub fn from_le_bytes(bytes:[u8;4]) -> Self
+    {
+        Self {
+            index:u16::from_le_bytes([bytes[0], bytes[1]]),
+            generation:u16::from_le_bytes([bytes[2], bytes[3]])
+        }
+    }
+
+}
+
+#[derive(Clone, PartialEq, Debug)]
 pub struct Entities<T>
 {
     entities:Box<[(EntityID, Option<T>)]>
@@ -122,20 +143,17 @@ impl<T> Entities<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializ
 
 impl<T> DeltaSerializable for Entities<T> where T : PartialEq + DeltaSerializable + Copy + Default
 {
-    fn delta_serialize(current:&Self, previous:&Self, writer:&mut dyn Write) -> std::io::Result<usize> {
+    fn delta_serialize(&self, previous:&Self, writer:&mut dyn Write) -> std::io::Result<usize> {
         let mut written = 0;
-        let l = current.entities.len() / 2; // only first part is replicated
+        let l = self.entities.len() / 2; // only first half is replicated
         for i in 0..l
         {
-            if current.entities[i] != previous.entities[i] // not equal, thus needs to be delta serialized
+            if self.entities[i] != previous.entities[i] // not equal, thus needs to be delta serialized
             {
                 // write id
-                written += writer.write(&(i as u16).to_le_bytes())?;
-                // write generation
-                written += writer.write(&current.entities[i].0.generation.to_le_bytes())?;
-
+                written += writer.write(&self.entities[i].0.to_le_bytes())?;
                 // write the actual entity data
-                match &current.entities[i]
+                match &self.entities[i]
                 {
                     (_, None) => written += writer.write(&(0 as u8).to_le_bytes())?, // None entity, write a zero
                     (_, Some(current)) => {
@@ -154,15 +172,38 @@ impl<T> DeltaSerializable for Entities<T> where T : PartialEq + DeltaSerializabl
     }
 
     fn delta_deserialize(previous:&Self, read:&mut dyn Read) -> std::io::Result<Self> {
-        let current = Entities::new();
+        let mut current = previous.clone();
         loop
         {
+            // read entityID and then entities.
+            // if EOF is found, we have reach the end and no more entities
             let mut buf = [0 as u8;4];
-            let n = read.read(&mut buf)?;
-            if n == 0
+            match read.read_exact(&mut buf)
             {
-                break;
+                Ok(_) => {
+                    let id = EntityID::from_le_bytes(buf);
+                    let mut buf = [0 as u8;1]; 
+                    read.read_exact(&mut buf)?;
+                    let has_entity = if buf[0] == 0 { false } else { true };
+                    if has_entity
+                    {
+                        let (_, t) = &previous.entities[id.index as usize];
+                        let t = T::delta_deserialize(&t.unwrap_or_default(), read)?;
+                        current.entities[id.index as usize] = (id, Some(t));
+                    }
+                    else
+                    {
+                        current.entities[id.index as usize] = (id, None);
+                    }
+                } 
+                Err(err) => {
+                    let kind = err.kind();
+                    if kind == ErrorKind::UnexpectedEof {
+                        break;
+                    }
+                }
             }
+            
         }
 
         Ok(current)
