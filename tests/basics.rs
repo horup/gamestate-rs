@@ -10,11 +10,11 @@ struct Thing
 
 impl DeltaSerializable for Thing
 {
-    fn delta_serialize(current:&Self, previous:&Self, writer:&mut dyn std::io::Write) {
+    fn delta_serialize(current:&Self, previous:&Self, writer:&mut dyn std::io::Write) -> std::io::Result<usize> {
         todo!()
     }
 
-    fn delta_deserialize(previous:&Self, read:&mut dyn std::io::Read) -> Self {
+    fn delta_deserialize(previous:&Self, read:&mut dyn std::io::Read) -> std::io::Result<Self> {
         todo!()
     }
 }

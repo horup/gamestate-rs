@@ -9,8 +9,8 @@ pub struct State<T> where T : Copy + Clone + PartialEq + Copy + Default + DeltaS
 
 pub trait DeltaSerializable
 {
-    fn delta_serialize(current:&Self, previous:&Self, writer:&mut dyn Write);
-    fn delta_deserialize(previous:&Self, read:&mut dyn Read) -> Self;
+    fn delta_serialize(current:&Self, previous:&Self, writer:&mut dyn Write) -> std::io::Result<usize>;
+    fn delta_deserialize(previous:&Self, read:&mut dyn Read) -> std::io::Result<Self> where Self : Sized;
 }
 
 
@@ -26,14 +26,16 @@ impl<T> State<T> where T : Copy + Clone + PartialEq + Copy + Default + DeltaSeri
 
 impl<T> DeltaSerializable for State<T> where T : Copy + Clone + PartialEq + Copy + Default + DeltaSerializable
 {
-    fn delta_serialize(current:&Self, previous:&Self, writer:&mut dyn Write) 
+    fn delta_serialize(current:&Self, previous:&Self, writer:&mut dyn Write) -> std::io::Result<usize>
     {
-        Entities::delta_serialize(&current.entities, &previous.entities, writer);
+        let n = Entities::delta_serialize(&current.entities, &previous.entities, writer)?;
+        Ok(n)
     }
 
-    fn delta_deserialize(previous:&Self, read:&mut dyn Read) -> Self {
-        State {
-            entities:Entities::delta_deserialize(&previous.entities, read)
-        }
+    fn delta_deserialize(previous:&Self, read:&mut dyn Read) -> std::io::Result<Self> {
+        Ok(
+            State {
+            entities:Entities::delta_deserialize(&previous.entities, read)?
+        })
     }
 }

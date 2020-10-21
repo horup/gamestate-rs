@@ -122,35 +122,36 @@ impl<T> Entities<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializ
 
 impl<T> DeltaSerializable for Entities<T> where T : PartialEq + DeltaSerializable + Copy + Default
 {
-    fn delta_serialize(current:&Self, previous:&Self, writer:&mut dyn Write) {
+    fn delta_serialize(current:&Self, previous:&Self, writer:&mut dyn Write) -> std::io::Result<usize> {
+        let mut written = 0;
         let l = current.entities.len() / 2; // only first part is replicated
         for i in 0..l
         {
             if current.entities[i] != previous.entities[i] // not equal
             {
                 // write id
-                writer.write(&(i as u16).to_le_bytes());
+                written += writer.write(&(i as u16).to_le_bytes())?;
                 // write generation
-                writer.write(&current.entities[i].0.generation.to_le_bytes());
+                written += writer.write(&current.entities[i].0.generation.to_le_bytes())?;
             }
         }
+
+        Ok(written)
     }
 
-    fn delta_deserialize(previous:&Self, read:&mut dyn Read) -> Self {
+    fn delta_deserialize(previous:&Self, read:&mut dyn Read) -> std::io::Result<Self> {
         let mut current = Entities::new();
         loop
         {
             let mut buf = [0 as u8;4];
-            if let Ok(n) = read.read(&mut buf)
+            let n = read.read(&mut buf)?;
+            if n == 0
             {
-                if n == 0
-                {
-                    break;
-                }
+                break;
             }
         }
 
-        current
+        Ok(current)
     }
 }
 
