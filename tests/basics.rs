@@ -1,4 +1,4 @@
-use ruststatetest_rs::*;
+use gamestate::*;
 
 #[derive(Copy, Clone, PartialEq, Default)]
 struct Thing
