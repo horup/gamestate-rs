@@ -15,7 +15,12 @@ fn deltaserializable()
     let n = current.delta_serialize(&empty, &mut buf).unwrap();
     assert_eq!(n, 0);
 
-    current.entities.new_entity_replicated();
+    let (id, thing) = current.entities.new_entity_replicated().unwrap();
+
+    thing.health = 100.0;
+    thing.x = 10.0;
+    thing.y = 20.0;
+
     let mut buf = Vec::new();
     let n = current.delta_serialize(&empty, &mut buf).unwrap();
     assert_ne!(n, 0);
@@ -24,5 +29,7 @@ fn deltaserializable()
 
     let deserialized = S::delta_deserialize(&empty, &mut Cursor::new(&mut buf)).unwrap();
     assert_eq!(deserialized.entities.len(), 1);
+
+
     assert!(current == deserialized);
 }
