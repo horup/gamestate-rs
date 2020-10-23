@@ -1,4 +1,4 @@
-use std::{convert::TryInto, io::Read, io::{Cursor, ErrorKind, Write}, ops::Range, slice::IterMut};
+use std::{io::Read, io::{ErrorKind, Write}, ops::Range, slice::IterMut};
 use super::DeltaSerializable;
 
 #[derive(Copy, Eq, PartialEq, Clone, Default, Debug)]

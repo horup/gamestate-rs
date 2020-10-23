@@ -15,7 +15,7 @@ fn deltaserializable()
     let n = current.delta_serialize(&empty, &mut buf).unwrap();
     assert_eq!(n, 0);
 
-    let (id, thing) = current.entities.new_entity_replicated().unwrap();
+    let (_id, thing) = current.entities.new_entity_replicated().unwrap();
 
     thing.health = 100.0;
     thing.x = 10.0;

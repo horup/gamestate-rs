@@ -1,4 +1,4 @@
-use std::{error::Error, io::{Cursor, ErrorKind}};
+use std::{io::{Cursor, ErrorKind}};
 use std::io::Write;
 use std::io::Read;
 use gamestate::*;
@@ -45,7 +45,7 @@ impl DeltaSerializable for Thing
         Ok(0)
     }
 
-    fn delta_deserialize(previous:&Self, read:&mut dyn std::io::Read) -> std::io::Result<Self> {
+    fn delta_deserialize(_previous:&Self, read:&mut dyn std::io::Read) -> std::io::Result<Self> {
         let mut current = Self::default();
         let mut buf = [0 as u8; 1024];
         read.read_exact(&mut buf[0..1])?;
