@@ -10,20 +10,20 @@ pub struct EntityID
 
 impl  EntityID
 {
-    pub fn to_le_bytes(&self) -> [u8;4]
+    pub fn to_be_bytes(&self) -> [u8;4]
     {
         let mut buf= [0;4];
-        buf[0..2].copy_from_slice(&self.index.to_le_bytes());
-        buf[2..4].copy_from_slice(&self.generation.to_le_bytes());
-        self.generation.to_le_bytes();
+        buf[0..2].copy_from_slice(&self.index.to_be_bytes());
+        buf[2..4].copy_from_slice(&self.generation.to_be_bytes());
+        self.generation.to_be_bytes();
         return buf;
     }
 
-    pub fn from_le_bytes(bytes:[u8;4]) -> Self
+    pub fn from_be_bytes(bytes:[u8;4]) -> Self
     {
         Self {
-            index:u16::from_le_bytes([bytes[0], bytes[1]]),
-            generation:u16::from_le_bytes([bytes[2], bytes[3]])
+            index:u16::from_be_bytes([bytes[0], bytes[1]]),
+            generation:u16::from_be_bytes([bytes[2], bytes[3]])
         }
     }
 
@@ -151,13 +151,13 @@ impl<T> DeltaSerializable for Entities<T> where T : PartialEq + DeltaSerializabl
             if self.entities[i] != previous.entities[i] // not equal, thus needs to be delta serialized
             {
                 // write id
-                written += writer.write(&self.entities[i].0.to_le_bytes())?;
+                written += writer.write(&self.entities[i].0.to_be_bytes())?;
                 // write the actual entity data
                 match &self.entities[i]
                 {
-                    (_, None) => written += writer.write(&(0 as u8).to_le_bytes())?, // None entity, write a zero
+                    (_, None) => written += writer.write(&(0 as u8).to_be_bytes())?, // None entity, write a zero
                     (_, Some(current)) => {
-                        written += writer.write(&(1 as u8).to_le_bytes())?; // Some entity, write a one
+                        written += writer.write(&(1 as u8).to_be_bytes())?; // Some entity, write a one
                         let (_, prev) = &previous.entities[i];
                         let previous = &prev.unwrap_or_default();
 
@@ -181,7 +181,7 @@ impl<T> DeltaSerializable for Entities<T> where T : PartialEq + DeltaSerializabl
             match read.read_exact(&mut buf)
             {
                 Ok(_) => {
-                    let id = EntityID::from_le_bytes(buf);
+                    let id = EntityID::from_be_bytes(buf);
                     let mut buf = [0 as u8;1]; 
                     read.read_exact(&mut buf)?;
                     let has_entity = if buf[0] == 0 { false } else { true };
