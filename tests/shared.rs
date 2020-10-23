@@ -2,6 +2,7 @@ use std::{io::{Cursor, ErrorKind}};
 use std::io::Write;
 use std::io::Read;
 use gamestate::*;
+use byteorder::{BigEndian, WriteBytesExt, ReadBytesExt};
 
 #[derive(Copy, Clone, PartialEq, Default, Debug)]
 pub struct Thing
@@ -68,16 +69,16 @@ impl DeltaSerializable for Thing
             match buf[0]
             {
                 0 => {
-                    current.health = read_be_f32(&mut cursor)?;
+                    current.health = cursor.read_f32::<BigEndian>()?;
                 },
                 1 => {
-                    current.x = read_be_f32(&mut cursor)?;
+                    current.x = cursor.read_f32::<BigEndian>()?;
                 },
                 2 => {
-                    current.y = read_be_f32(&mut cursor)?;
+                    current.y = cursor.read_f32::<BigEndian>()?;
                 },
                 3 => {
-                    current.z = read_be_f32(&mut cursor)?;
+                    current.z = cursor.read_f32::<BigEndian>()?;
                 }
                 _=> return Err(std::io::Error::new(ErrorKind::Other, "input not understood")),
             }
