@@ -12,6 +12,13 @@ pub struct Thing
     pub health:f32
 }
 
+fn read_be_f32(read:&mut dyn std::io::Read) -> std::io::Result<f32>
+{
+    let mut buf = [0 as u8; 4];
+    read.read_exact(&mut buf)?;
+    return Ok(f32::from_be_bytes(buf));
+}
+
 impl DeltaSerializable for Thing
 {
     fn delta_serialize(&self, previous:&Self, write:&mut dyn std::io::Write) -> std::io::Result<usize> {
@@ -61,24 +68,16 @@ impl DeltaSerializable for Thing
             match buf[0]
             {
                 0 => {
-                    let mut buf = [0 as u8; 4];
-                    cursor.read_exact(&mut buf)?;
-                    current.health = f32::from_be_bytes(buf);
+                    current.health = read_be_f32(&mut cursor)?;
                 },
                 1 => {
-                    let mut buf = [0 as u8; 4];
-                    cursor.read_exact(&mut buf)?;
-                    current.x = f32::from_be_bytes(buf);
+                    current.x = read_be_f32(&mut cursor)?;
                 },
                 2 => {
-                    let mut buf = [0 as u8; 4];
-                    cursor.read_exact(&mut buf)?;
-                    current.y = f32::from_be_bytes(buf);
+                    current.y = read_be_f32(&mut cursor)?;
                 },
                 3 => {
-                    let mut buf = [0 as u8; 4];
-                    cursor.read_exact(&mut buf)?;
-                    current.z = f32::from_be_bytes(buf);
+                    current.z = read_be_f32(&mut cursor)?;
                 }
                 _=> return Err(std::io::Error::new(ErrorKind::Other, "input not understood")),
             }
