@@ -20,11 +20,13 @@ fn deltaserializable()
     thing.health = 100.0;
     thing.x = 10.0;
     thing.y = 20.0;
+    thing.z = 30.0;
 
     let mut buf = Vec::new();
     let n = current.delta_serialize(&empty, &mut buf).unwrap();
     assert_ne!(n, 0);
     assert_eq!(current.entities.len(), 1);
+
 
 
     let deserialized = S::delta_deserialize(&empty, &mut Cursor::new(&mut buf)).unwrap();
