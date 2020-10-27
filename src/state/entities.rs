@@ -1,4 +1,4 @@
-use std::{io::Read, io::{ErrorKind, Write}, ops::Range, slice::IterMut};
+use std::{slice::Iter, io::Read, io::{ErrorKind, Write}, ops::Range, slice::IterMut};
 use super::DeltaSerializable;
 
 #[derive(Copy, Eq, PartialEq, Clone, Default, Debug)]
@@ -64,10 +64,17 @@ impl<T> Entities<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializ
         None
     }
 
-    pub fn iter_mut(&mut self) -> EntitiesIntoIterator<T>
+    pub fn iter_mut(&mut self) -> EntitiesIntoIteratorMut<T>
+    {
+        EntitiesIntoIteratorMut {
+            iter:self.entities.iter_mut()
+        }
+    }
+
+    pub fn iter(&mut self) -> EntitiesIntoIterator<T>
     {
         EntitiesIntoIterator {
-            iter:self.entities.iter_mut()
+            iter:self.entities.iter()
         }
     }
 
@@ -211,12 +218,12 @@ impl<T> DeltaSerializable for Entities<T> where T : PartialEq + DeltaSerializabl
 }
 
 
-pub struct EntitiesIntoIterator<'a, T> where T : Copy + Clone
+pub struct EntitiesIntoIteratorMut<'a, T> where T : Copy + Clone
 {
     iter:IterMut<'a, (EntityID, Option<T>)>
 }
 
-impl<'a, T> Iterator for EntitiesIntoIterator<'a, T> where T : Copy + Clone
+impl<'a, T> Iterator for EntitiesIntoIteratorMut<'a, T> where T : Copy + Clone
 {
     type Item = (EntityID, &'a mut T);
 
@@ -226,6 +233,35 @@ impl<'a, T> Iterator for EntitiesIntoIterator<'a, T> where T : Copy + Clone
             if let Some(e) = self.iter.next()
             {
                 if let Some(thing) = &mut e.1
+                {
+                    return Some((e.0, thing));
+                }
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        None
+    }
+}
+
+pub struct EntitiesIntoIterator<'a, T> where T : Copy + Clone
+{
+    iter:Iter<'a, (EntityID, Option<T>)>
+}
+
+impl<'a, T> Iterator for EntitiesIntoIterator<'a, T> where T : Copy + Clone
+{
+    type Item = (EntityID, &'a T);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop
+        {
+            if let Some(e) = self.iter.next()
+            {
+                if let Some(thing) = &e.1
                 {
                     return Some((e.0, thing));
                 }
