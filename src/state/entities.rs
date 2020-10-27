@@ -85,7 +85,7 @@ impl<T> Entities<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializ
         }
     }
 
-    pub fn iter(&mut self) -> EntitiesIntoIterator<T>
+    pub fn iter(&self) -> EntitiesIntoIterator<T>
     {
         EntitiesIntoIterator {
             iter:self.entities.iter()
