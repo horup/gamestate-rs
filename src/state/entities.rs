@@ -64,6 +64,20 @@ impl<T> Entities<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializ
         None
     }
 
+    pub fn get_entity(&self, id:EntityID) -> Option<(EntityID, &T)>
+    {
+        let e = &self.entities[id.index as usize];
+        if e.0 == id
+        {
+            if let Some(e) = &e.1
+            {
+                return Some((id, e));
+            }
+        }
+
+        None
+    }
+
     pub fn iter_mut(&mut self) -> EntitiesIntoIteratorMut<T>
     {
         EntitiesIntoIteratorMut {
