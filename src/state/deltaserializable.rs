@@ -1,5 +1,5 @@
 use std::io::{Read, Write};
-use super::{Entities};
+use super::{Collection};
 
 pub trait DeltaSerializable
 {

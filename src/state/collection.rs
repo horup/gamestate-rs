@@ -3,12 +3,12 @@ use crate::{Entity, ID};
 use super::DeltaSerializable;
 
 #[derive(Clone, PartialEq, Debug)]
-pub struct Entities<T> where T : Entity
+pub struct Collection<T> where T : Entity
 {
     entities:Box<[InUse<T>]>
 }
 
-impl<T> Default for Entities<T> where T : Entity
+impl<T> Default for Collection<T> where T : Entity
 {
     fn default() -> Self {
         let size = u16::MAX / 4;
@@ -29,7 +29,7 @@ enum InUse<T>
     True(T)
 }
 
-impl<T> Entities<T> where T : Entity
+impl<T> Collection<T> where T : Entity
 {
     pub fn get_entity_mut(&mut self, id:ID) -> Option<&mut T>
     {
@@ -140,7 +140,7 @@ impl<T> Entities<T> where T : Entity
     }
 }
 
-impl<T> DeltaSerializable for Entities<T> where T : Entity
+impl<T> DeltaSerializable for Collection<T> where T : Entity
 {
     fn delta_serialize(&self, previous:&Self, writer:&mut dyn Write) -> std::io::Result<usize> {
         let mut written = 0;

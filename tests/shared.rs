@@ -108,7 +108,7 @@ impl DeltaSerializable for Thing
 
 #[derive(Clone, Default, PartialEq, Debug)]
 pub struct State {
-    pub entities:Entities<Thing>
+    pub entities:Collection<Thing>
 }
 
 impl DeltaSerializable for State {
@@ -117,7 +117,7 @@ impl DeltaSerializable for State {
     }
 
     fn delta_deserialize(previous:&Self, read:&mut dyn Read) -> std::io::Result<Self> where Self : Sized {
-        let entities = Entities::delta_deserialize(&previous.entities, read)?;
+        let entities = Collection::delta_deserialize(&previous.entities, read)?;
         Ok(Self {
             entities:entities
         })

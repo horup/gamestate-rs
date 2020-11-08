@@ -1,6 +1,6 @@
 mod deltaserializable;
-mod entities;
+mod collection;
 mod entity;
-pub use entities::*;
+pub use collection::*;
 pub use deltaserializable::*;
 pub use entity::*;
