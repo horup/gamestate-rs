@@ -29,8 +29,9 @@ fn deltaserializable()
 
 
     let deserialized = State::delta_deserialize(&empty, &mut Cursor::new(&mut buf)).unwrap();
-    assert_eq!(deserialized.entities.len(), 1);
+    println!("{:?}", deserialized.entities.get_entity(ID {index:0, generation:1}));
 
+    assert_eq!(deserialized.entities.len(), 1);
 
     assert!(current == deserialized);
 }

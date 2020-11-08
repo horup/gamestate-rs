@@ -43,6 +43,7 @@ impl DeltaSerializable for Thing
     fn delta_serialize(&self, previous:&Self, write:&mut dyn std::io::Write) -> std::io::Result<usize> {
         let mut temp = [0 as u8;1024];
         let mut c = Cursor::new(&mut temp[0..]);
+       
         if self.health != previous.health
         {
             c.write(&[0])?;
@@ -63,12 +64,17 @@ impl DeltaSerializable for Thing
             c.write(&[3])?;
             c.write(&self.z.to_be_bytes())?;
         }
+        if self.id != previous.id
+        {
+            c.write(&[4])?;
+            c.write(&self.id.to_be_bytes())?;
+        }
 
         let l = c.position() as usize;
 
         write.write(&(c.position() as u8).to_be_bytes())?;
         write.write_all(&temp[0..l])?;
-        Ok(0)
+        Ok(l)
     }
 
     fn delta_deserialize(previous:&Self, read:&mut dyn std::io::Read) -> std::io::Result<Self> {
@@ -80,6 +86,7 @@ impl DeltaSerializable for Thing
         read.read_exact(&mut buf[0..l])?;
         let mut cursor = Cursor::new(&buf[0..l]);
 
+        
         
         while cursor.position() != l as u64 {
             let mut buf = [0 as u8; 1];
@@ -97,6 +104,11 @@ impl DeltaSerializable for Thing
                 },
                 3 => {
                     current.z = cursor.read_f32::<BigEndian>()?;
+                },
+                4 => {
+                    let mut temp = [0;4];
+                    cursor.read_exact(&mut temp)?;
+                    current.id = ID::from_be_bytes(temp);
                 }
                 _=> return Err(std::io::Error::new(ErrorKind::Other, "input not understood")),
             }

@@ -1,4 +1,4 @@
-use std::{slice::Iter, io::Read, io::{ErrorKind, Write}, ops::Range, slice::IterMut};
+use std::{io::Read, io::{ErrorKind, Write}, ops::Range, slice::Iter, slice::IterMut};
 use crate::{Entity, ID};
 use super::DeltaSerializable;
 
@@ -145,27 +145,32 @@ impl<T> DeltaSerializable for Collection<T> where T : Entity
     fn delta_serialize(&self, previous:&Self, writer:&mut dyn Write) -> std::io::Result<usize> {
         let mut written = 0;
         let l = self.entities.len() / 2; // only first half is replicated
-     /*   for i in 0..l
+        for i in 0..l
         {
             if self.entities[i] != previous.entities[i] // not equal, thus needs to be delta serialized
             {
-                // write id
-                written += writer.write(&self.entities[i].0.to_be_bytes())?;
-                // write the actual entity data
-                match &self.entities[i]
-                {
-                    (_, None) => written += writer.write(&(0 as u8).to_be_bytes())?, // None entity, write a zero
-                    (_, Some(current)) => {
+                match &self.entities[i] {
+                    InUse::False(e) => {
+                        written += writer.write(&e.id().to_be_bytes())?;
+                        writer.write(&(0 as u8).to_be_bytes())?; // Entity not in use, simply write a zero
+                    }
+                    InUse::True(e) => {
+                        written += writer.write(&e.id().to_be_bytes())?;
                         written += writer.write(&(1 as u8).to_be_bytes())?; // Some entity, write a one
-                        let (_, prev) = &previous.entities[i];
-                        let previous = &prev.unwrap_or_default();
 
-                        written += T::delta_serialize(current, previous, writer)?;
+                        // write the delta of the entity
+                        match &previous.entities[i] {
+                            InUse::False(pe) => {
+                                written += T::delta_serialize(e, pe, writer)?;
+                            }
+                            InUse::True(pe) => {
+                                written += T::delta_serialize(e, pe, writer)?;
+                            }
+                        }
                     }
                 }
-                
             }
-        }*/
+        }
 
         Ok(written)
     }
@@ -177,7 +182,7 @@ impl<T> DeltaSerializable for Collection<T> where T : Entity
             // read entityID and then entities.
             // if EOF is found, we have reach the end and no more entities
             let mut buf = [0 as u8;4];
-          /*  match read.read_exact(&mut buf)
+            match read.read_exact(&mut buf)
             {
                 Ok(_) => {
                     let id = ID::from_be_bytes(buf);
@@ -186,13 +191,29 @@ impl<T> DeltaSerializable for Collection<T> where T : Entity
                     let has_entity = if buf[0] == 0 { false } else { true };
                     if has_entity
                     {
-                        let (_, t) = &previous.entities[id.index as usize];
-                        let t = T::delta_deserialize(&t.unwrap_or_default(), read)?;
-                        current.entities[id.index as usize] = (id, Some(t));
+                        let pe = &previous.entities[id.index as usize];
+                        match pe 
+                        {
+                            InUse::False(pe) => {
+                                let e = T::delta_deserialize(&pe, read)?;
+                                current.entities[id.index as usize] = InUse::True(e);
+                            }
+                            InUse::True(pe) => {
+                                let e = T::delta_deserialize(&pe, read)?;
+                                current.entities[id.index as usize] = InUse::True(e);
+                            }
+                        }
                     }
                     else
                     {
-                        current.entities[id.index as usize] = (id, None);
+                        match previous.entities[id.index as usize] {
+                            InUse::False(pe) => {
+                                current.entities[id.index as usize] = InUse::False(pe);
+                            }
+                            InUse::True(pe) => {
+                                current.entities[id.index as usize] = InUse::False(pe);
+                            }
+                        }
                     }
                 } 
                 Err(err) => {
@@ -201,7 +222,7 @@ impl<T> DeltaSerializable for Collection<T> where T : Entity
                         break;
                     }
                 }
-            }*/
+            }
             
         }
 
