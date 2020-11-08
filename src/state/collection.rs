@@ -57,16 +57,16 @@ impl<T> Collection<T> where T : Entity
         None
     }
 
-    pub fn iter_mut(&mut self) -> EntitiesIntoIteratorMut<T>
+    pub fn iter_mut(&mut self) -> CollectionIntoIteratorMut<T>
     {
-        EntitiesIntoIteratorMut {
+        CollectionIntoIteratorMut {
             iter:self.entities.iter_mut()
         }
     }
 
-    pub fn iter(&self) -> EntitiesIntoIterator<T>
+    pub fn iter(&self) -> CollectionIntoIterator<T>
     {
-        EntitiesIntoIterator {
+        CollectionIntoIterator {
             iter:self.entities.iter()
         }
     }
@@ -231,12 +231,12 @@ impl<T> DeltaSerializable for Collection<T> where T : Entity
 }
 
 
-pub struct EntitiesIntoIteratorMut<'a, T> where T : Entity
+pub struct CollectionIntoIteratorMut<'a, T> where T : Entity
 {
     iter:IterMut<'a, InUse<T>>
 }
 
-impl<'a, T> Iterator for EntitiesIntoIteratorMut<'a, T> where T : Entity
+impl<'a, T> Iterator for CollectionIntoIteratorMut<'a, T> where T : Entity
 {
     type Item = &'a mut T;
 
@@ -259,13 +259,13 @@ impl<'a, T> Iterator for EntitiesIntoIteratorMut<'a, T> where T : Entity
     }
 }
 
-pub struct EntitiesIntoIterator<'a, T> where T : Entity
+pub struct CollectionIntoIterator<'a, T> where T : Entity
 {
     iter:Iter<'a, InUse<T>>
 }
 
 
-impl<'a, T> Iterator for EntitiesIntoIterator<'a, T> where T : Entity
+impl<'a, T> Iterator for CollectionIntoIterator<'a, T> where T : Entity
 {
     type Item = &'a T;
 
