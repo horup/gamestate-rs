@@ -2,7 +2,7 @@ use std::{io::{Cursor, ErrorKind}};
 use std::io::Write;
 use std::io::Read;
 use gamestate::*;
-use byteorder::{BigEndian, WriteBytesExt, ReadBytesExt};
+use byteorder::{BigEndian, ReadBytesExt};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Thing
@@ -29,13 +29,6 @@ impl Entity for Thing
     fn id(&self) -> ID {
         self.id
     }
-}
-
-fn read_be_f32(read:&mut dyn std::io::Read) -> std::io::Result<f32>
-{
-    let mut buf = [0 as u8; 4];
-    read.read_exact(&mut buf)?;
-    return Ok(f32::from_be_bytes(buf));
 }
 
 impl DeltaSerializable for Thing
