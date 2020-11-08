@@ -1,5 +1,6 @@
-mod state;
+mod deltaserializable;
 mod entities;
-
-pub use state::*;
+mod entity;
 pub use entities::*;
+pub use deltaserializable::*;
+pub use entity::*;

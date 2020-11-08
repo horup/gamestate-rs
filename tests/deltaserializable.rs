@@ -7,15 +7,15 @@ use shared::*;
 #[test]
 fn deltaserializable()
 {
-    let empty = S::new();
-    let mut current = S::new();
+    let empty = State::default();
+    let mut current = State::default();
     assert_eq!(current, empty);
 
     let mut buf = Vec::new();
     let n = current.delta_serialize(&empty, &mut buf).unwrap();
     assert_eq!(n, 0);
 
-    let (_id, thing) = current.entities.new_entity_replicated().unwrap();
+    let thing = current.entities.new_entity_replicated().unwrap();
 
     thing.health = 100.0;
     thing.x = 10.0;
@@ -28,8 +28,7 @@ fn deltaserializable()
     assert_eq!(current.entities.len(), 1);
 
 
-
-    let deserialized = S::delta_deserialize(&empty, &mut Cursor::new(&mut buf)).unwrap();
+    let deserialized = State::delta_deserialize(&empty, &mut Cursor::new(&mut buf)).unwrap();
     assert_eq!(deserialized.entities.len(), 1);
 
 

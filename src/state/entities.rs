@@ -1,77 +1,56 @@
 use std::{slice::Iter, io::Read, io::{ErrorKind, Write}, ops::Range, slice::IterMut};
+use crate::{Entity, ID};
 use super::DeltaSerializable;
 
-#[derive(Copy, Eq, PartialEq, Clone, Default, Debug)]
-pub struct EntityID
-{
-    pub index:u16,
-    pub generation:u16
-}
-
-impl  EntityID
-{
-    pub fn to_be_bytes(&self) -> [u8;4]
-    {
-        let mut buf= [0;4];
-        buf[0..2].copy_from_slice(&self.index.to_be_bytes());
-        buf[2..4].copy_from_slice(&self.generation.to_be_bytes());
-        self.generation.to_be_bytes();
-        return buf;
-    }
-
-    pub fn from_be_bytes(bytes:[u8;4]) -> Self
-    {
-        Self {
-            index:u16::from_be_bytes([bytes[0], bytes[1]]),
-            generation:u16::from_be_bytes([bytes[2], bytes[3]])
-        }
-    }
-
-}
-
 #[derive(Clone, PartialEq, Debug)]
-pub struct Entities<T>
+pub struct Entities<T> where T : Entity
 {
-    entities:Box<[(EntityID, Option<T>)]>
+    entities:Box<[InUse<T>]>
 }
 
-impl<T> Entities<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializable
+impl<T> Default for Entities<T> where T : Entity
 {
-    pub fn new() -> Entities<T>
-    {
+    fn default() -> Self {
         let size = u16::MAX / 4;
-        let mut entities:Vec<(EntityID, Option<T>)> = vec![(EntityID::default(), None); size as usize];
-        for i in 0..entities.len()
-        {
-            entities[i].0.index = i as u16;
+        let mut entities = Vec::new();
+        for i in 0..size {
+            entities.push(InUse::False(T::new(ID { index:i, generation:0 })));
         }
         Self {
             entities:entities.into_boxed_slice()
         }
     }
+}
 
-    pub fn get_entity_mut(&mut self, id:EntityID) -> Option<(EntityID, &mut T)>
+#[derive(Clone, Copy, PartialEq, Debug)]
+enum InUse<T>
+{
+    False(T),
+    True(T)
+}
+
+impl<T> Entities<T> where T : Entity
+{
+    pub fn get_entity_mut(&mut self, id:ID) -> Option<&mut T>
     {
-        let e = &mut self.entities[id.index as usize];
-        if e.0 == id
+        if let InUse::True(e) = &mut self.entities[id.index as usize]
         {
-            if let Some(e) = &mut e.1
+            if e.id() == id
             {
-                return Some((id, e));
+                return Some(e);
             }
         }
 
         None
     }
 
-    pub fn get_entity(&self, id:EntityID) -> Option<(EntityID, &T)>
+    pub fn get_entity(&self, id:ID) -> Option<&T>
     {
-        let e = &self.entities[id.index as usize];
-        if e.0 == id
+        if let InUse::True(e) = &self.entities[id.index as usize]
         {
-            if let Some(e) = &e.1
+            if e.id() == id
             {
-                return Some((id, e));
+                return Some(&e);
             }
         }
 
@@ -92,23 +71,24 @@ impl<T> Entities<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializ
         }
     }
 
-    pub fn delete_entity(&mut self, id:EntityID)
+    pub fn delete_entity(&mut self, id:ID)
     {
         let i = id.index as usize;
-        if self.entities[i].0 == id && self.entities[i].1 != None
-        {
-            self.entities[i].1 = None;
+        if let InUse::True(e) = &self.entities[i] {
+            if e.id() == id {
+                self.entities[i] = InUse::False(*e);
+            }
         }
     }
 
-    pub fn new_entity_replicated(&mut self) -> Option<(EntityID, &mut T)>
+    pub fn new_entity_replicated(&mut self) -> Option<&mut T>
     {
         let l = self.entities.len() / 2;
         let slice = 0..l;
         return self.new_entity_internal(slice);
     }
 
-    pub fn new_entity(&mut self) -> Option<(EntityID, &mut T)>
+    pub fn new_entity(&mut self) -> Option<&mut T>
     {
         let l = self.entities.len() / 2;
         let slice = l..l*2;
@@ -117,19 +97,18 @@ impl<T> Entities<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializ
 
     pub fn clear(&mut self)
     {
-        for (_, t) in self.entities.iter_mut()
-        {
-            *t = None;
+        for e in self.entities.iter_mut() {
+            if let InUse::True(ee) = e {
+                *e = InUse::False(*ee);
+            }
         }
     }
 
     pub fn len(&self) -> usize
     {
         let mut len = 0;
-        for (_, e) in self.entities.iter()
-        {
-            if let Some(_) = e
-            {
+        for e in self.entities.iter() {
+            if let InUse::True(_) = e {
                 len += 1;
             }
         }
@@ -137,17 +116,16 @@ impl<T> Entities<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializ
         return len;
     }
 
-    fn new_entity_internal(&mut self, slice:Range<usize>) -> Option<(EntityID, &mut T)>
+    fn new_entity_internal(&mut self, slice:Range<usize>) -> Option<&mut T>
     {
-        let mut id = EntityID::default();
+        let mut id = ID::default();
         let mut success = false;
         for i in slice
         {
-            if let None = self.entities[i].1
-            {
-                self.entities[i].0.generation += 1; // increment generation
-                id = self.entities[i].0;
-                self.entities[i].1 = Some(T::default());
+            if let InUse::False(e) = self.entities[i] {
+                id = e.id();
+                id.generation += 1;
+                self.entities[i] = InUse::True(T::new(id));
                 success = true;
                 break;
             }
@@ -162,12 +140,12 @@ impl<T> Entities<T> where T : Copy + Clone + PartialEq + Default + DeltaSerializ
     }
 }
 
-impl<T> DeltaSerializable for Entities<T> where T : PartialEq + DeltaSerializable + Copy + Default
+impl<T> DeltaSerializable for Entities<T> where T : Entity
 {
     fn delta_serialize(&self, previous:&Self, writer:&mut dyn Write) -> std::io::Result<usize> {
         let mut written = 0;
         let l = self.entities.len() / 2; // only first half is replicated
-        for i in 0..l
+     /*   for i in 0..l
         {
             if self.entities[i] != previous.entities[i] // not equal, thus needs to be delta serialized
             {
@@ -187,7 +165,7 @@ impl<T> DeltaSerializable for Entities<T> where T : PartialEq + DeltaSerializabl
                 }
                 
             }
-        }
+        }*/
 
         Ok(written)
     }
@@ -199,10 +177,10 @@ impl<T> DeltaSerializable for Entities<T> where T : PartialEq + DeltaSerializabl
             // read entityID and then entities.
             // if EOF is found, we have reach the end and no more entities
             let mut buf = [0 as u8;4];
-            match read.read_exact(&mut buf)
+          /*  match read.read_exact(&mut buf)
             {
                 Ok(_) => {
-                    let id = EntityID::from_be_bytes(buf);
+                    let id = ID::from_be_bytes(buf);
                     let mut buf = [0 as u8;1]; 
                     read.read_exact(&mut buf)?;
                     let has_entity = if buf[0] == 0 { false } else { true };
@@ -223,7 +201,7 @@ impl<T> DeltaSerializable for Entities<T> where T : PartialEq + DeltaSerializabl
                         break;
                     }
                 }
-            }
+            }*/
             
         }
 
@@ -232,23 +210,22 @@ impl<T> DeltaSerializable for Entities<T> where T : PartialEq + DeltaSerializabl
 }
 
 
-pub struct EntitiesIntoIteratorMut<'a, T> where T : Copy + Clone
+pub struct EntitiesIntoIteratorMut<'a, T> where T : Entity
 {
-    iter:IterMut<'a, (EntityID, Option<T>)>
+    iter:IterMut<'a, InUse<T>>
 }
 
-impl<'a, T> Iterator for EntitiesIntoIteratorMut<'a, T> where T : Copy + Clone
+impl<'a, T> Iterator for EntitiesIntoIteratorMut<'a, T> where T : Entity
 {
-    type Item = (EntityID, &'a mut T);
+    type Item = &'a mut T;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop
         {
             if let Some(e) = self.iter.next()
             {
-                if let Some(thing) = &mut e.1
-                {
-                    return Some((e.0, thing));
+                if let InUse::True(e) = e {
+                    return Some(e);
                 }
             }
             else
@@ -261,23 +238,23 @@ impl<'a, T> Iterator for EntitiesIntoIteratorMut<'a, T> where T : Copy + Clone
     }
 }
 
-pub struct EntitiesIntoIterator<'a, T> where T : Copy + Clone
+pub struct EntitiesIntoIterator<'a, T> where T : Entity
 {
-    iter:Iter<'a, (EntityID, Option<T>)>
+    iter:Iter<'a, InUse<T>>
 }
 
-impl<'a, T> Iterator for EntitiesIntoIterator<'a, T> where T : Copy + Clone
+
+impl<'a, T> Iterator for EntitiesIntoIterator<'a, T> where T : Entity
 {
-    type Item = (EntityID, &'a T);
+    type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop
         {
             if let Some(e) = self.iter.next()
             {
-                if let Some(thing) = &e.1
-                {
-                    return Some((e.0, thing));
+                if let InUse::True(e) = e {
+                    return Some(e);
                 }
             }
             else

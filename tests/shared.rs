@@ -4,13 +4,31 @@ use std::io::Read;
 use gamestate::*;
 use byteorder::{BigEndian, WriteBytesExt, ReadBytesExt};
 
-#[derive(Copy, Clone, PartialEq, Default, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Thing
 {
+    pub id:ID,
     pub x:f32,
     pub y:f32,
     pub z:f32,
     pub health:f32
+}
+
+impl Entity for Thing
+{
+    fn new(id:ID) -> Self {
+        Self {
+            id:id,
+            x:0.0,
+            y:0.0,
+            z:0.0,
+            health:100.0
+        }
+    }
+
+    fn id(&self) -> ID {
+        self.id
+    }
 }
 
 fn read_be_f32(read:&mut dyn std::io::Read) -> std::io::Result<f32>
@@ -53,8 +71,8 @@ impl DeltaSerializable for Thing
         Ok(0)
     }
 
-    fn delta_deserialize(_previous:&Self, read:&mut dyn std::io::Read) -> std::io::Result<Self> {
-        let mut current = Self::default();
+    fn delta_deserialize(previous:&Self, read:&mut dyn std::io::Read) -> std::io::Result<Self> {
+        let mut current = Self::new(previous.id);
         let mut buf = [0 as u8; 1024];
         read.read_exact(&mut buf[0..1])?;
         let l = buf[0] as usize;
@@ -88,4 +106,20 @@ impl DeltaSerializable for Thing
     }
 }
 
-pub type S = State<Thing>;
+#[derive(Clone, Default, PartialEq, Debug)]
+pub struct State {
+    pub entities:Entities<Thing>
+}
+
+impl DeltaSerializable for State {
+    fn delta_serialize(&self, previous:&Self, write:&mut dyn Write) -> std::io::Result<usize> {
+        self.entities.delta_serialize(&previous.entities, write)
+    }
+
+    fn delta_deserialize(previous:&Self, read:&mut dyn Read) -> std::io::Result<Self> where Self : Sized {
+        let entities = Entities::delta_deserialize(&previous.entities, read)?;
+        Ok(Self {
+            entities:entities
+        })
+    }
+}
