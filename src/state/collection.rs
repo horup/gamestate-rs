@@ -57,9 +57,15 @@ impl<T> Collection<T> where T : Entity
         None
     }
     
-    pub fn get_entity_pair(&self, id1:ID, id2:ID) -> (Option<&T>, Option<&T>)
+    pub fn get_entity_pair(&self, id1:ID, id2:ID) -> Option<(&T, &T)>
     {
-        (self.get_entity(id1), self.get_entity(id2))
+        if let Some(e1) = self.get_entity(id1) {
+            if let Some(e2) = self.get_entity(id2) {
+                return Some((e1, e2));
+            }
+        }
+        
+        None
     }
 
     pub fn iter_mut(&mut self) -> CollectionIntoIteratorMut<T>
