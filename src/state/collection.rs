@@ -56,6 +56,11 @@ impl<T> Collection<T> where T : Entity
 
         None
     }
+    
+    pub fn get_entity_pair(&self, id1:ID, id2:ID) -> (Option<&T>, Option<&T>)
+    {
+        (self.get_entity(id1), self.get_entity(id2))
+    }
 
     pub fn iter_mut(&mut self) -> CollectionIntoIteratorMut<T>
     {
